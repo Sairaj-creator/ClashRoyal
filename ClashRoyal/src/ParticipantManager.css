@@ -1,0 +1,329 @@
+/* Additional styles for Participant Manager to match the app aesthetic */
+.pm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.pm-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  background: linear-gradient(135deg, var(--gold2) 0%, #FFF5CC 45%, var(--gold2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.pm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  padding: 10px 22px;
+}
+
+.pm-search-container {
+  position: relative;
+  margin-bottom: 30px;
+  max-width: 500px;
+}
+
+.pm-search-bar {
+  width: 100%;
+  background: rgba(28, 33, 48, 0.6);
+  border: 1px solid var(--rim);
+  border-radius: 12px;
+  padding: 14px 20px 14px 45px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.pm-search-bar:focus {
+  border-color: var(--gold3);
+  box-shadow: 0 0 15px rgba(245, 197, 24, 0.1);
+}
+
+.pm-search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  color: var(--dim);
+}
+
+/* pm-grid uses responsive grid layout */
+.pm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.pm-card {
+  background: linear-gradient(145deg, #12151E, #0a0c11);
+  border: 1px solid var(--rim);
+  border-radius: 14px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.pm-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(245, 197, 24, 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.pm-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--gold3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(245, 197, 24, 0.15);
+}
+
+.pm-card:hover::before {
+  opacity: 1;
+}
+
+.pm-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 2;
+}
+
+.pm-avatar {
+  width: 45px;
+  height: 45px;
+  background: linear-gradient(135deg, var(--ink3), var(--ink4));
+  border: 1px solid var(--rim);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
+}
+
+.pm-card:hover .pm-avatar {
+  border-color: var(--gold3);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.5), 0 0 10px rgba(245, 197, 24, 0.3);
+}
+
+.pm-crown {
+  font-size: 1.3rem;
+  filter: drop-shadow(0 2px 4px rgba(245, 197, 24, 0.3));
+}
+
+.pm-card:hover .pm-crown {
+  filter: drop-shadow(0 2px 8px rgba(245, 197, 24, 0.8));
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+.pm-id-badge {
+  background: rgba(128, 90, 213, 0.15);
+  border: 1px solid rgba(128, 90, 213, 0.3);
+  color: #B794F4;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.pm-card-body {
+  z-index: 2;
+  margin-top: 5px;
+}
+
+.pm-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-card:hover .pm-name {
+  color: var(--gold);
+}
+
+.btn-purple-outline {
+  background: transparent;
+  color: #B794F4;
+  border: 1px solid rgba(128, 90, 213, 0.5);
+}
+
+.btn-purple-outline:hover {
+  background: rgba(128, 90, 213, 0.1);
+  border-color: #805AD5;
+  box-shadow: 0 0 15px rgba(128, 90, 213, 0.2);
+}
+
+/* ==========================================================================
+   ATTENDANCE & SELECTION
+   ========================================================================== */
+.pm-subtitle {
+  color: var(--dim);
+  font-size: 0.95rem;
+  margin-top: 5px;
+}
+
+.pm-attendance-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.pm-stat-badge {
+  background: rgba(245, 197, 24, 0.1);
+  color: var(--gold);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(245, 197, 24, 0.3);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Card Selection States */
+.pm-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pm-card.is-absent {
+  opacity: 0.55;
+  filter: grayscale(80%);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.pm-card.is-absent:hover {
+  opacity: 0.8;
+  filter: grayscale(40%);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.pm-card.is-absent .pm-card-glow {
+  opacity: 0 !important;
+}
+
+.pm-card.is-absent .pm-avatar {
+  background: var(--ink2);
+  border-color: var(--rim);
+}
+
+.pm-card.is-present {
+  border-color: rgba(245, 197, 24, 0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(245, 197, 24, 0.1);
+}
+
+.pm-card.is-present:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(245, 197, 24, 0.2);
+}
+
+.pm-status-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 1px;
+}
+
+.is-present .pm-status-badge {
+  background: rgba(56, 161, 105, 0.15);
+  color: #68d391;
+  border: 1px solid rgba(56, 161, 105, 0.3);
+}
+
+.is-absent .pm-status-badge {
+  background: rgba(229, 62, 62, 0.1);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.2);
+}
+
+.pm-id-text {
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-top: 4px;
+  font-family: monospace;
+}
+
+/* ==========================================================================
+   POOL ASSIGNMENT CONTROLS
+   ========================================================================== */
+.pm-pool-toggles {
+  display: flex;
+  margin-top: 15px;
+  background: var(--ink1);
+  border-radius: 6px;
+  border: 1px solid var(--rim);
+  overflow: hidden;
+  z-index: 5;
+  position: relative;
+}
+
+.pm-pool-btn {
+  flex: 1;
+  padding: 6px 0;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pm-pool-btn:hover {
+  background: var(--ink2);
+  color: white;
+}
+
+.pm-pool-btn.active.p1 {
+  background: rgba(245, 197, 24, 0.15);
+  color: var(--gold);
+  border-bottom: 2px solid var(--gold);
+}
+
+.pm-pool-btn.active.p2 {
+  background: rgba(128, 90, 213, 0.15);
+  color: #B794F4;
+  border-bottom: 2px solid #805AD5;
+}
