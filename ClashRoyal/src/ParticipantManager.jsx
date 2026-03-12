@@ -18,7 +18,7 @@ export default function ParticipantManager({ data = DUMMY_DATA, onStartTournamen
   }, [data]);
 
   // 2. Attendance State (default all present)
-  const [presentIds, setPresentIds] = useState(() => new Set(participants.map(p => p.id)));
+  const [presentIds, setPresentIds] = useState(() => new Set());
   // 3. Manual Pool Selection (default all Pool 1)
   const [poolAssignments, setPoolAssignments] = useState(() => {
     const map = new Map();
