@@ -1,0 +1,361 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ADMIN PANEL
+═══════════════════════════════════════════════════════════════════ */
+
+.admin-panel {
+  min-height: 100vh;
+  padding: 28px 20px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.admin-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1rem, 3vw, 1.6rem);
+  background: linear-gradient(135deg, var(--gold2) 0%, #FFF5CC 45%, var(--gold2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
+}
+
+.admin-subtitle {
+  font-size: .78rem;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+/* ── Login Gate ──────────────────────────────────────────────── */
+.admin-login-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.admin-login-card {
+  background: var(--ink2);
+  border: 1px solid var(--rim);
+  border-radius: 16px;
+  padding: 48px 36px;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, .5);
+}
+
+.admin-login-card .lock-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 12px rgba(245, 197, 24, .4));
+}
+
+.admin-login-card h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.admin-login-card p {
+  font-size: .85rem;
+  color: var(--dim);
+  margin-bottom: 22px;
+}
+
+.admin-pw-input {
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--ink3);
+  border: 1px solid var(--rim);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: .95rem;
+  outline: none;
+  text-align: center;
+  letter-spacing: 3px;
+  transition: border-color .2s;
+  margin-bottom: 6px;
+}
+
+.admin-pw-input:focus {
+  border-color: var(--gold3);
+}
+
+.admin-pw-error {
+  font-size: .78rem;
+  color: var(--red);
+  margin-bottom: 12px;
+  min-height: 1.2em;
+}
+
+/* ── Stats Bar ───────────────────────────────────────────────── */
+.admin-stats {
+  display: flex;
+  gap: 0;
+  background: var(--ink2);
+  border: 1px solid var(--rim);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.admin-stat {
+  flex: 1;
+  padding: 10px 14px;
+  text-align: center;
+  border-right: 1px solid var(--rim);
+}
+
+.admin-stat:last-child {
+  border-right: none;
+}
+
+.admin-stat-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.admin-stat-label {
+  font-size: .6rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+/* ── Search & Actions ────────────────────────────────────────── */
+.admin-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admin-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 14px;
+  background: var(--ink3);
+  border: 1px solid var(--rim);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: .88rem;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.admin-search:focus {
+  border-color: var(--gold3);
+}
+
+/* ── Add Member Form ─────────────────────────────────────────── */
+.admin-add-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  padding: 16px 18px;
+  background: linear-gradient(145deg, rgba(245, 197, 24, .04), var(--ink2));
+  border: 1px solid var(--gold3);
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-add-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.admin-add-form label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.admin-add-form input {
+  padding: 8px 12px;
+  background: var(--ink3);
+  border: 1px solid var(--rim);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: .88rem;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.admin-add-form input:focus {
+  border-color: var(--gold3);
+}
+
+/* ── Table ────────────────────────────────────────────────────── */
+.admin-table-wrap {
+  background: var(--ink2);
+  border: 1px solid var(--rim);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table thead {
+  background: var(--ink3);
+}
+
+.admin-table th {
+  padding: 10px 16px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-align: left;
+  border-bottom: 1px solid var(--rim);
+}
+
+.admin-table td {
+  padding: 10px 16px;
+  font-size: .88rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .03);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover {
+  background: rgba(245, 197, 24, .03);
+}
+
+.admin-table .row-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  color: var(--dim);
+  font-size: .78rem;
+  width: 40px;
+}
+
+.admin-table .actions-cell {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ── Inline Edit Input ───────────────────────────────────────── */
+.admin-inline-input {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--ink3);
+  border: 1px solid var(--gold3);
+  border-radius: 4px;
+  color: var(--gold);
+  font-family: 'Barlow', sans-serif;
+  font-size: .88rem;
+  outline: none;
+}
+
+/* ── Small action buttons ────────────────────────────────────── */
+.btn-icon-sm {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rim);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: .88rem;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+
+.btn-icon-sm:hover {
+  border-color: var(--gold3);
+  background: rgba(245, 197, 24, .07);
+}
+
+.btn-icon-sm.edit:hover {
+  border-color: var(--blue);
+  background: rgba(49, 130, 206, .1);
+}
+
+.btn-icon-sm.delete {
+  color: var(--dim);
+}
+
+.btn-icon-sm.delete:hover {
+  border-color: var(--red);
+  background: rgba(229, 62, 62, .1);
+  color: var(--red);
+}
+
+.btn-icon-sm.save:hover {
+  border-color: var(--green);
+  background: rgba(56, 161, 105, .1);
+}
+
+.btn-icon-sm.cancel:hover {
+  border-color: var(--red);
+  background: rgba(229, 62, 62, .1);
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.admin-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--dim);
+  font-size: .9rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-add-form {
+    flex-direction: column;
+  }
+
+  .admin-table td,
+  .admin-table th {
+    padding: 8px 10px;
+    font-size: .8rem;
+  }
+}

@@ -389,7 +389,12 @@ const PHASES = [
 // ═══════════════════════════════════════════════════════════════════
 //  MAIN
 // ═══════════════════════════════════════════════════════════════════
+const STORAGE_KEY = "clash_tournament_data";
+
 export default function Tournament({ initialParticipants, modeType, onReset }) {
+  // Track whether we restored from localStorage
+  const [restoredFromStorage, setRestoredFromStorage] = useState(false);
+
   const [phase, setPhase] = useState("pools");
   const [err, setErr] = useState("");
 
@@ -410,20 +415,57 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
   // Tracks which players have already received a BYE — prevents same player getting BYE twice
   const [byeHistory, setByeHistory] = useState(new Set());
 
-  // Initialization Effect
+  // ── Restore state from localStorage on mount ──────────────────────
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const d = JSON.parse(saved);
+        setPhase(d.phase ?? "pools");
+        setPool1(d.pool1 ?? []);
+        setPool2(d.pool2 ?? []);
+        setP1Rounds(d.p1Rounds ?? []);
+        setP2Rounds(d.p2Rounds ?? []);
+        setCrossMatches(d.crossMatches ?? []);
+        setKoRounds(d.koRounds ?? []);
+        setFinalMatch(d.finalMatch ?? null);
+        setHistory(d.history ?? []);
+        setSnapshots(d.snapshots ?? []);
+        setByeHistory(new Set(d.byeHistory ?? []));
+        setRestoredFromStorage(true);
+      }
+    } catch (e) {
+      console.warn("Failed to restore tournament state:", e);
+    }
+  }, []);
+
+  // ── Persist state to localStorage on every change ─────────────────
+  useEffect(() => {
+    // Don't save if pools are empty (nothing to persist yet)
+    if (pool1.length === 0 && pool2.length === 0) return;
+    try {
+      const data = {
+        phase, pool1, pool2, p1Rounds, p2Rounds,
+        crossMatches, koRounds, finalMatch,
+        history, snapshots,
+        byeHistory: [...byeHistory],
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn("Failed to save tournament state:", e);
+    }
+  }, [phase, pool1, pool2, p1Rounds, p2Rounds, crossMatches, koRounds, finalMatch, history, snapshots, byeHistory]);
+
+  // Initialization Effect — skip if restored from localStorage
+  useEffect(() => {
+    if (restoredFromStorage) return;
     if (!initialParticipants || initialParticipants.length === 0) return;
     
     // Helper to calculate split so Pool 1 is always even
     const getEvenSplitIndex = (total) => {
       let half = Math.ceil(total / 2);
       if (half % 2 !== 0) {
-        // If half is odd, we adjust it to be even.
-        // We can either go up or down. Usually we give Pool 1 slightly more or equal.
-        // E.g., 75 / 2 = 37.5 -> Math.ceil = 38 (Even)
-        // E.g., 73 / 2 = 36.5 -> Math.ceil = 37 (Odd) -> Make it 38
         half = half + 1;
-        // make sure we don't accidentally take all players
         if (half >= total) half = half - 2; 
       }
       return half;
@@ -443,7 +485,7 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
       setPool1(p1Names);
       setPool2(p2Names);
     }
-  }, [initialParticipants, modeType]);
+  }, [initialParticipants, modeType, restoredFromStorage]);
 
   // ── Derived ──────────────────────────────────────────────────────
   const phaseIdx     = PHASES.findIndex((p) => p.key === phase);
@@ -507,12 +549,13 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
     if (loser) setHistory((h) => [...h, { winner: player, loser, tag: `Pool 2 R${ri + 1}` }]);
   };
 
-  const pickIn = (list, setList, idx, player, tag) => {
+  const pickCross = (idx, player) => {
     if (!player) return;
     snap();
-    setList(list.map((m, i) => i !== idx ? m : { ...m, winner: player }));
-    const loser = list[idx].p1 === player ? list[idx].p2 : list[idx].p1;
-    if (loser) setHistory((h) => [...h, { winner: player, loser, tag }]);
+    const m = crossMatches[idx];
+    const loser = m.p1 === player ? m.p2 : m.p1;
+    setCrossMatches(prev => prev.map((m, i) => i !== idx ? m : { ...m, winner: player }));
+    if (loser) setHistory((h) => [...h, { winner: player, loser, tag: "Cross" }]);
   };
 
   // ── Knockout round pick ───────────────────────────────────────────
@@ -638,6 +681,7 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
   // Reset
   const reset = () => {
     if (window.confirm("Return to Participant Manager? This will discard the current bracket.")) {
+        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
         onReset();
     }
   };
@@ -654,6 +698,16 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
   // ── Export: Pools ─────────────────────────────────────────────────
   const downloadPools = () =>
     triggerDownload(buildPoolsText(pool1, pool2), "tournament-pools.txt");
+
+  // ── Export: Individual Pools ──────────────────────────────────────
+  const downloadPool1 = () => {
+    const text = pool1.map((p, i) => `${i + 1}. ${p}`).join("\n");
+    triggerDownload(`Pool 1 Players\n${"─".repeat(30)}\n${text}\n`, "pool-1-players.txt");
+  };
+  const downloadPool2 = () => {
+    const text = pool2.map((p, i) => `${i + 1}. ${p}`).join("\n");
+    triggerDownload(`Pool 2 Players\n${"─".repeat(30)}\n${text}\n`, "pool-2-players.txt");
+  };
 
   // ── Export: Current Structure ─────────────────────────────────────
   const downloadTournamentStructure = () =>
@@ -777,7 +831,9 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
           </div>
           <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
             <button className="btn btn-gold" onClick={startPoolPlay}>⚔️ Start Pool Matches</button>
-            <button className="btn-export" onClick={downloadPools}>⬇ Download Pools</button>
+            <button className="btn-export" onClick={downloadPools}>⬇ Download All Pools</button>
+            <button className="btn-export" onClick={downloadPool1}>⬇ Pool 1</button>
+            <button className="btn-export" onClick={downloadPool2}>⬇ Pool 2</button>
           </div>
         </div>
       )}
@@ -864,7 +920,7 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
               <RoundCol
                 title="⚔️ Cross Round"
                 matches={crossMatches}
-                onWin={(i, p) => pickIn(crossMatches, setCrossMatches, i, p, "Cross")}
+                onWin={(i, p) => pickCross(i, p)}
                 active={true}
                 byeHistory={byeHistory}
               />
