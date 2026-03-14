@@ -5,24 +5,26 @@ const DUMMY_DATA = [
   { "Member Name": "SATWIK R NAIK (Leader)", "Aakriti ID": "AK0665" },
 ];
 
-export default function ParticipantManager({ data = DUMMY_DATA, onStartTournament }) {
+export default function ParticipantManager({ data = DUMMY_DATA, onStartTournament, injectMode = false, excludedIds = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   // 1. Process and format names (Remove "(Leader)")
   const participants = useMemo(() => {
-    return data.map((p) => ({
-      name: p["Member Name"].replace(/\s*\(Leader\)\s*/i, ""),
-      id: p["Aakriti ID"],
-      raw: p["Member Name"]
-    }));
-  }, [data]);
+    return data
+      .filter((p) => !excludedIds.includes(p["Aakriti ID"]))
+      .map((p) => ({
+        name: p["Member Name"].replace(/\s*\(Leader\)\s*/i, ""),
+        id: p["Aakriti ID"],
+        raw: p["Member Name"]
+      }));
+  }, [data, excludedIds]);
 
   // 2. Attendance State (default all present)
   const [presentIds, setPresentIds] = useState(() => new Set());
-  // 3. Manual Pool Selection (default all Pool 1)
+  // 3. Manual Pool Selection (default all to 2 if injectMode, else 1)
   const [poolAssignments, setPoolAssignments] = useState(() => {
     const map = new Map();
-    participants.forEach(p => map.set(p.id, 1));
+    participants.forEach(p => map.set(p.id, injectMode ? 2 : 1));
     return map;
   });
 
@@ -62,7 +64,7 @@ export default function ParticipantManager({ data = DUMMY_DATA, onStartTournamen
     // Inject the manual pool choice directly into the participant objects
     const mappedParticipants = activeParticipants.map(p => ({
       ...p,
-      manualPool: poolAssignments.get(p.id) || 1
+      manualPool: injectMode ? 2 : (poolAssignments.get(p.id) || 1)
     }));
 
     onStartTournament(mappedParticipants, mode);
@@ -76,20 +78,32 @@ export default function ParticipantManager({ data = DUMMY_DATA, onStartTournamen
           <p className="pm-subtitle">Select participants who are present today before starting.</p>
         </div>
         <div className="pm-actions">
-          <button 
-            className="btn btn-gold action-btn" 
-            onClick={() => handleStart('auto')}
-            disabled={presentCount < 2}
-          >
-            <span className="btn-icon">⚡</span> Auto Split ({presentCount})
-          </button>
-          <button 
-            className="btn btn-purple-outline action-btn"
-            onClick={() => handleStart('manual')}
-            disabled={presentCount < 2}
-          >
-            <span className="btn-icon">⚙️</span> Manual ({presentCount})
-          </button>
+          {injectMode ? (
+            <button 
+              className="btn btn-purple action-btn" 
+              onClick={() => handleStart('manual')}
+              disabled={presentCount === 0}
+            >
+              <span className="btn-icon">💉</span> Inject Pool 2 ({presentCount})
+            </button>
+          ) : (
+            <>
+              <button 
+                className="btn btn-gold action-btn" 
+                onClick={() => handleStart('auto')}
+                disabled={presentCount < 2}
+              >
+                <span className="btn-icon">⚡</span> Auto Split ({presentCount})
+              </button>
+              <button 
+                className="btn btn-purple-outline action-btn"
+                onClick={() => handleStart('manual')}
+                disabled={presentCount < 2}
+              >
+                <span className="btn-icon">⚙️</span> Manual ({presentCount})
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -133,7 +147,7 @@ export default function ParticipantManager({ data = DUMMY_DATA, onStartTournamen
               </div>
               
               {/* Pool Selection Controls */}
-              {isPresent && (
+              {isPresent && !injectMode && (
                 <div className="pm-pool-toggles">
                   <button
                     className={`pm-pool-btn ${poolAssignments.get(p.id) === 1 ? 'active p1' : ''}`}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // ═══════════════════════════════════════════════════════════════════
 //  CORE UTILITIES
@@ -391,53 +391,38 @@ const PHASES = [
 // ═══════════════════════════════════════════════════════════════════
 const STORAGE_KEY = "clash_tournament_data";
 
-export default function Tournament({ initialParticipants, modeType, onReset }) {
-  // Track whether we restored from localStorage
-  const [restoredFromStorage, setRestoredFromStorage] = useState(false);
+export default function Tournament({ initialParticipants, modeType, onReset, onRequestPool2 }) {
+  const savedData = useMemo(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn("Failed to parse tournament state:", e);
+    }
+    return null;
+  }, []);
 
-  const [phase, setPhase] = useState("pools");
+  // Track whether we restored from localStorage
+  const [restoredFromStorage, setRestoredFromStorage] = useState(!!savedData);
+
+  const [phase, setPhase] = useState(savedData?.phase ?? "pools");
   const [err, setErr] = useState("");
 
   // Players
-  const [pool1, setPool1] = useState([]);
-  const [pool2, setPool2] = useState([]);
+  const [pool1, setPool1] = useState(savedData?.pool1 ?? []);
+  const [pool2, setPool2] = useState(savedData?.pool2 ?? []);
 
-  // Match state — each stage is its own array / array-of-arrays
-  const [p1Rounds,     setP1Rounds]     = useState([]); // Pool 1 rounds
-  const [p2Rounds,     setP2Rounds]     = useState([]); // Pool 2 rounds
-  const [crossMatches, setCrossMatches] = useState([]); // Cross round
-  const [koRounds,     setKoRounds]     = useState([]); // [ round1[], round2[], … ]
-  const [finalMatch,   setFinalMatch]   = useState(null);
+  // Match state
+  const [p1Rounds,     setP1Rounds]     = useState(savedData?.p1Rounds ?? []);
+  const [p2Rounds,     setP2Rounds]     = useState(savedData?.p2Rounds ?? []);
+  const [crossMatches, setCrossMatches] = useState(savedData?.crossMatches ?? []);
+  const [koRounds,     setKoRounds]     = useState(savedData?.koRounds ?? []);
+  const [finalMatch,   setFinalMatch]   = useState(savedData?.finalMatch ?? null);
 
   // History & undo
-  const [history,    setHistory]    = useState([]);
-  const [snapshots,  setSnapshots]  = useState([]);
-  // Tracks which players have already received a BYE — prevents same player getting BYE twice
-  const [byeHistory, setByeHistory] = useState(new Set());
-
-  // ── Restore state from localStorage on mount ──────────────────────
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const d = JSON.parse(saved);
-        setPhase(d.phase ?? "pools");
-        setPool1(d.pool1 ?? []);
-        setPool2(d.pool2 ?? []);
-        setP1Rounds(d.p1Rounds ?? []);
-        setP2Rounds(d.p2Rounds ?? []);
-        setCrossMatches(d.crossMatches ?? []);
-        setKoRounds(d.koRounds ?? []);
-        setFinalMatch(d.finalMatch ?? null);
-        setHistory(d.history ?? []);
-        setSnapshots(d.snapshots ?? []);
-        setByeHistory(new Set(d.byeHistory ?? []));
-        setRestoredFromStorage(true);
-      }
-    } catch (e) {
-      console.warn("Failed to restore tournament state:", e);
-    }
-  }, []);
+  const [history,    setHistory]    = useState(savedData?.history ?? []);
+  const [snapshots,  setSnapshots]  = useState(savedData?.snapshots ?? []);
+  const [byeHistory, setByeHistory] = useState(() => new Set(savedData?.byeHistory ?? []));
 
   // ── Persist state to localStorage on every change ─────────────────
   useEffect(() => {
@@ -486,6 +471,33 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
       setPool2(p2Names);
     }
   }, [initialParticipants, modeType, restoredFromStorage]);
+
+  // ── Handle Pool 2 Injection ───────────────────────────────────────
+  useEffect(() => {
+    // If we're already playing and pool 2 is empty, check if we just got new players
+    if (phase !== 'pools' && pool2.length === 0) {
+      const p2Names = initialParticipants.filter(p => p.manualPool === 2).map(p => p.name);
+      if (p2Names.length > 0) {
+        setPool2(p2Names);
+        
+        // If we are already in pool-play phase, immediately generate Round 1 for Pool 2
+        // We must pass the current byeHistory so it's aware of P1's BYEs and records new ones
+        if (phase === 'pool-play') {
+          const m2 = buildRound(p2Names, "p2-r0", byeHistory);
+          const newByes = new Set(byeHistory);
+          m2.filter(m => m.isBye).forEach(m => newByes.add(m.p1));
+          setByeHistory(newByes);
+          setP2Rounds([m2]);
+        }
+      }
+    } else if (phase === 'pools' && pool2.length === 0) {
+       // if still in pools phase, just populate it.
+       const p2Names = initialParticipants.filter(p => p.manualPool === 2).map(p => p.name);
+       if (p2Names.length > 0) {
+         setPool2(p2Names);
+       }
+    }
+  }, [initialParticipants, phase, pool2.length, byeHistory]);
 
   // ── Derived ──────────────────────────────────────────────────────
   const phaseIdx     = PHASES.findIndex((p) => p.key === phase);
@@ -589,46 +601,73 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
   // Pools → pool-play
   const startPoolPlay = () => {
     const m1 = buildRound(pool1, "p1-r0", byeHistory);
-    const m2 = buildRound(pool2, "p2-r0", byeHistory);
-    // Record any BYE recipients from both pools
+    let m2 = [];
     const newByes = new Set(byeHistory);
-    [...m1, ...m2].filter((m) => m.isBye).forEach((m) => newByes.add(m.p1));
+    
+    // Only build pool 2 if it has players
+    if (pool2.length > 0) {
+      m2 = buildRound(pool2, "p2-r0", byeHistory);
+      m2.filter((m) => m.isBye).forEach((m) => newByes.add(m.p1));
+    }
+
+    m1.filter((m) => m.isBye).forEach((m) => newByes.add(m.p1));
     setByeHistory(newByes);
+    
     setP1Rounds([m1]);
-    setP2Rounds([m2]);
+    if (m2.length > 0) setP2Rounds([m2]);
     setPhase("pool-play");
   };
 
-  const advancePools = () => {
+  // Independent advancement for Pool 1
+  const advancePool1 = () => {
     const lastP1 = p1Rounds[p1Rounds.length - 1];
-    const lastP2 = p2Rounds[p2Rounds.length - 1];
     
-    if (!allDecided(lastP1) || !allDecided(lastP2)) {
-      setErr("Decide all pool matches before advancing."); return;
+    if (!allDecided(lastP1)) {
+      setErr("Decide all Pool 1 matches before advancing."); return;
     }
     setErr("");
 
     const w1 = getWinners(lastP1);
-    const w2 = getWinners(lastP2);
-
     const m1 = buildRound(w1, `p1-r${p1Rounds.length}`, byeHistory);
-    const m2 = buildRound(w2, `p2-r${p2Rounds.length}`, byeHistory);
     
     const newByes = new Set(byeHistory);
-    [...m1, ...m2].filter((m) => m.isBye).forEach((m) => newByes.add(m.p1));
+    m1.filter((m) => m.isBye).forEach((m) => newByes.add(m.p1));
     setByeHistory(newByes);
 
     setP1Rounds([...p1Rounds, m1]);
+  };
+
+  // Independent advancement for Pool 2
+  const advancePool2 = () => {
+    if (p2Rounds.length === 0) return; // safety
+    const lastP2 = p2Rounds[p2Rounds.length - 1];
+    
+    if (!allDecided(lastP2)) {
+      setErr("Decide all Pool 2 matches before advancing."); return;
+    }
+    setErr("");
+
+    const w2 = getWinners(lastP2);
+    const m2 = buildRound(w2, `p2-r${p2Rounds.length}`, byeHistory);
+    
+    const newByes = new Set(byeHistory);
+    m2.filter((m) => m.isBye).forEach((m) => newByes.add(m.p1));
+    setByeHistory(newByes);
+
     setP2Rounds([...p2Rounds, m2]);
   };
 
   // Pool-play → cross
   const startCross = () => {
+    if (p1Rounds.length === 0 || p2Rounds.length === 0) {
+      setErr("Both pools must have at least one completed round to crossover."); return;
+    }
+
     const lastP1 = p1Rounds[p1Rounds.length - 1];
     const lastP2 = p2Rounds[p2Rounds.length - 1];
 
     if (!allDecided(lastP1) || !allDecided(lastP2)) {
-      setErr("All pool matches must be decided before crossing over."); return;
+      setErr("All currently active pool matches must be decided before crossing over."); return;
     }
     setErr("");
     
@@ -819,21 +858,36 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
             <div className="card card-purple">
               <div className="pool-hdr">
                 <span className="pool-tag p2">Pool 2</span>
-                <span className="pool-count">{pool2.length} players</span>
-                {oddBye(pool2.length) && <span className="badge badge-bye">🎫 odd — 1 BYE/round</span>}
+                {pool2.length === 0 ? (
+                  <span className="pool-count awaiting-inject">Awaiting Injection</span>
+                ) : (
+                  <>
+                    <span className="pool-count">{pool2.length} players</span>
+                    {oddBye(pool2.length) && <span className="badge badge-bye">🎫 odd — 1 BYE/round</span>}
+                  </>
+                )}
               </div>
               <div className="chips">
-                {pool2.map((p, i) => (
-                  <span key={i} className="chip"><span className="chip-num p">{i+1}</span>{p}</span>
-                ))}
+                {pool2.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--rim)' }}>
+                    Empty. Waiting for Pool 2 arrival.
+                  </div>
+                ) : (
+                  pool2.map((p, i) => (
+                    <span key={i} className="chip"><span className="chip-num p">{i+1}</span>{p}</span>
+                  ))
+                )}
               </div>
             </div>
           </div>
           <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
             <button className="btn btn-gold" onClick={startPoolPlay}>⚔️ Start Pool Matches</button>
+            {pool2.length === 0 && (
+              <button className="btn btn-purple" onClick={onRequestPool2}>Inject Pool 2 Participants</button>
+            )}
             <button className="btn-export" onClick={downloadPools}>⬇ Download All Pools</button>
             <button className="btn-export" onClick={downloadPool1}>⬇ Pool 1</button>
-            <button className="btn-export" onClick={downloadPool2}>⬇ Pool 2</button>
+            {pool2.length > 0 && <button className="btn-export" onClick={downloadPool2}>⬇ Pool 2</button>}
           </div>
         </div>
       )}
@@ -842,23 +896,26 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
       {phase === "pool-play" && (
         <div>
           <div className="next-bar">
-            { (p1Rounds.length > 0 && p2Rounds.length > 0) && (getWinners(p1Rounds[p1Rounds.length - 1]).length > 1 || getWinners(p2Rounds[p2Rounds.length - 1]).length > 1) && (
-              <button className="btn btn-blue" onClick={advancePools} style={{ marginRight: 8 }}>Next Pool Round →</button>
+            {pool2.length === 0 && (
+              <button className="btn btn-purple" onClick={onRequestPool2} style={{ marginRight: 8 }}>💉 Inject Pool 2</button>
             )}
+            {p1Rounds.length > 0 && getWinners(p1Rounds[p1Rounds.length - 1]).length > 1 && (
+              <button className="btn btn-blue" onClick={advancePool1} style={{ marginRight: 8, filter: 'hue-rotate(-40deg)' }}>Next P1 Round →</button>
+            )}
+            {p2Rounds.length > 0 && getWinners(p2Rounds[p2Rounds.length - 1]).length > 1 && (
+              <button className="btn btn-blue" onClick={advancePool2} style={{ marginRight: 8, filter: 'hue-rotate(40deg)' }}>Next P2 Round →</button>
+            )}
+            
             <button className="btn btn-purple" onClick={startCross}>Cross Round →</button>
             <span className="hint" style={{ marginLeft: 8 }}>
-              { p1Rounds.length > 0 && p2Rounds.length > 0 ? (
-                <>
-                  P1: <strong>{p1Rounds[p1Rounds.length - 1].filter(m=>m.winner).length}/{p1Rounds[p1Rounds.length - 1].length}</strong> ·
-                  P2: <strong>{p2Rounds[p2Rounds.length - 1].filter(m=>m.winner).length}/{p2Rounds[p2Rounds.length - 1].length}</strong>
-                </>
-              ) : null }
+              P1: <strong>{p1Rounds.length > 0 ? `${p1Rounds[p1Rounds.length - 1].filter(m=>m.winner).length}/${p1Rounds[p1Rounds.length - 1].length}` : 'Wait'}</strong> ·
+              P2: <strong>{p2Rounds.length > 0 ? `${p2Rounds[p2Rounds.length - 1].filter(m=>m.winner).length}/${p2Rounds[p2Rounds.length - 1].length}` : (pool2.length === 0 ? 'Awaiting Injection' : 'Wait')}</strong>
             </span>
             {currentByePlayer && (
               <span className="bye-rotation">🎫 BYE this round: <strong>{currentByePlayer}</strong></span>
             )}
           </div>
-          {p1Rounds.length > 0 && p2Rounds.length > 0 && allDecided(p1Rounds[p1Rounds.length - 1]) && allDecided(p2Rounds[p2Rounds.length - 1]) && (
+          {p1Rounds.length > 0 && allDecided(p1Rounds[p1Rounds.length - 1]) && (p2Rounds.length === 0 || allDecided(p2Rounds[p2Rounds.length - 1])) && (
             <div className="export-bar">
               <span>📄 Export:</span>
               <button className="btn-export" onClick={downloadTournamentStructure}>⬇ Download Current Structure</button>
@@ -879,6 +936,12 @@ export default function Tournament({ initialParticipants, modeType, onReset }) {
               ))}
               
               <div style={{ width: 2, background: "var(--rim)", opacity: 0.5, margin: "0 16px" }} />
+
+              {pool2.length === 0 && (
+                <div className="round-col" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                  Awaiting Pool 2 Injection...
+                </div>
+              )}
 
               {p2Rounds.map((round, ri) => (
                 <RoundCol

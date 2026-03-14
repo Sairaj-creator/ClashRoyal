@@ -10,7 +10,7 @@ const PLAYER_STORAGE_KEY = "clash_player_data";
 
 export default function App() {
   // ── View state ────────────────────────────────────────────────
-  const [view, setView] = useState('manager'); // 'manager' | 'tournament' | 'admin'
+  const [view, setView] = useState('manager'); // 'manager' | 'tournament' | 'admin' | 'manager-pool2'
 
   // ── Player data (localStorage > data.json fallback) ───────────
   const [playerData, setPlayerData] = useState(() => {
@@ -58,6 +58,16 @@ export default function App() {
     setView('manager');
   };
 
+  const handleInjectPool2 = (newParticipants) => {
+    const state = {
+      ...tournamentState,
+      participants: [...tournamentState.participants, ...newParticipants]
+    };
+    setTournamentState(state);
+    try { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+    setView('tournament');
+  };
+
   const handleDataChange = (updated) => {
     if (updated === null) {
       // Reset to original
@@ -80,7 +90,32 @@ export default function App() {
           initialParticipants={tournamentState.participants}
           modeType={tournamentState.mode}
           onReset={handleResetTournament}
+          onRequestPool2={() => setView('manager-pool2')}
         />
+      ) : view === 'manager-pool2' ? (
+        <>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setView('tournament')}
+            style={{
+              position: 'fixed',
+              top: 14,
+              left: 14,
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            ← Back to Tournament
+          </button>
+          <ParticipantManager
+            data={playerData}
+            onStartTournament={handleInjectPool2}
+            injectMode={true}
+            excludedIds={tournamentState.participants.map(p => p.id)}
+          />
+        </>
       ) : (
         <>
           <button
